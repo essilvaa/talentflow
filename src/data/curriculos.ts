@@ -17,6 +17,7 @@ export interface Formacao {
 export interface Curriculo {
   id: string;
   nome: string;
+  dataNascimento?: string;
   cargo: string;
   email: string;
   telefone: string;
