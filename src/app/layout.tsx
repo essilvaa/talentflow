@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col bg-slate-50 antialiased`}
       >
-        <Header />
+        <Suspense
+          fallback={
+            <div className="h-24 border-b border-slate-200 bg-white" />
+          }
+        >
+          <Header />
+        </Suspense>
         <main className="flex-1">{children}</main>
         <Footer />
 

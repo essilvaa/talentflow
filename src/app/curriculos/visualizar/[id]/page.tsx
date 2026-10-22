@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -13,24 +14,61 @@ import {
   UserRound,
 } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Curriculo, curriculosMock } from "@/data/curriculos";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
+import {
+  type Curriculo,
+  curriculosMock,
+} from "@/data/curriculos";
+
+// Chave utilizada para armazenar currículos no navegador.
 const STORAGE_KEY = "talentflow_curriculos";
 
-export default function DetalhesCurriculo() {
+// Componente exibido durante o carregamento.
+function CarregandoCurriculo() {
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 px-6 py-12">
+      <Skeleton className="h-8 w-40" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+      <Skeleton className="h-48 w-full rounded-2xl" />
+    </div>
+  );
+}
+
+// Componente responsável por carregar os dados do currículo.
+function DetalhesConteudo() {
   const params = useParams<{ id: string }>();
-  const [curriculo, setCurriculo] = useState<Curriculo | null>(null);
+
+  const [curriculo, setCurriculo] = useState<Curriculo | null>(
+    null
+  );
+
   const [carregando, setCarregando] = useState(true);
 
+  // Busca o currículo no localStorage usando seu ID.
   useEffect(() => {
+    setCarregando(true);
+
     const timer = window.setTimeout(() => {
       try {
-        const dados = localStorage.getItem(STORAGE_KEY);
-        const lista: Curriculo[] = dados
-          ? JSON.parse(dados)
-          : curriculosMock;
+        const dadosSalvos = localStorage.getItem(STORAGE_KEY);
+
+        const lista: Curriculo[] =
+          dadosSalvos === null
+            ? curriculosMock
+            : JSON.parse(dadosSalvos);
+
+        if (!Array.isArray(lista)) {
+          throw new Error("Dados de currículos inválidos.");
+        }
 
         const encontrado = lista.find(
           (item) => item.id === params.id
@@ -38,7 +76,11 @@ export default function DetalhesCurriculo() {
 
         setCurriculo(encontrado ?? null);
       } catch (error) {
-        console.error("Erro ao carregar currículo:", error);
+        console.error(
+          "Erro ao carregar currículo:",
+          error
+        );
+
         setCurriculo(null);
       } finally {
         setCarregando(false);
@@ -48,17 +90,12 @@ export default function DetalhesCurriculo() {
     return () => window.clearTimeout(timer);
   }, [params.id]);
 
+  // Estado de carregamento.
   if (carregando) {
-    return (
-      <div className="mx-auto max-w-5xl space-y-6 px-6 py-12">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-44 w-full rounded-2xl" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
-        <Skeleton className="h-48 w-full rounded-2xl" />
-      </div>
-    );
+    return <CarregandoCurriculo />;
   }
 
+  // Estado quando o currículo não existe.
   if (!curriculo) {
     return (
       <section className="mx-auto max-w-5xl px-6 py-24 text-center">
@@ -77,16 +114,20 @@ export default function DetalhesCurriculo() {
 
         <Link
           href="/curriculos/visualizar"
-          className="mt-8 inline-flex rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
+          className="mt-8 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-medium text-white transition-colors hover:bg-blue-700"
         >
+          <ArrowLeft size={18} />
           Voltar aos currículos
         </Link>
       </section>
     );
   }
 
+  // Página com todos os dados do candidato.
   return (
     <section className="mx-auto max-w-5xl space-y-6 px-4 py-12 sm:px-6">
+
+      {/* BOTÃO VOLTAR */}
       <Link
         href="/curriculos/visualizar"
         className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800"
@@ -95,13 +136,17 @@ export default function DetalhesCurriculo() {
         Voltar aos currículos
       </Link>
 
+      {/* DADOS DO CANDIDATO */}
       <Card className="border-slate-200 bg-white">
         <CardContent>
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+
+            {/* Avatar */}
             <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-3xl font-bold text-blue-700">
-              {curriculo.nome.charAt(0)}
+              {curriculo.nome.charAt(0).toUpperCase()}
             </div>
 
+            {/* Nome e cargo */}
             <div>
               <h1 className="text-3xl font-bold text-slate-900">
                 {curriculo.nome}
@@ -114,7 +159,9 @@ export default function DetalhesCurriculo() {
             </div>
           </div>
 
+          {/* CONTATO */}
           <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-6 text-sm text-slate-600 sm:flex-row sm:gap-8">
+
             <span className="flex items-center gap-2 break-all">
               <Mail size={17} />
               {curriculo.email}
@@ -124,13 +171,17 @@ export default function DetalhesCurriculo() {
               <Phone size={17} />
               {curriculo.telefone}
             </span>
+
           </div>
         </CardContent>
       </Card>
 
+      {/* RESUMO PROFISSIONAL */}
       <Card className="border-slate-200 bg-white">
         <CardHeader>
-          <CardTitle>Resumo profissional</CardTitle>
+          <CardTitle>
+            Resumo profissional
+          </CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -140,6 +191,7 @@ export default function DetalhesCurriculo() {
         </CardContent>
       </Card>
 
+      {/* EXPERIÊNCIAS PROFISSIONAIS */}
       <Card className="border-slate-200 bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -152,37 +204,43 @@ export default function DetalhesCurriculo() {
         </CardHeader>
 
         <CardContent className="space-y-6">
+
           {curriculo.experiencias.length === 0 ? (
             <p className="text-slate-500">
               Nenhuma experiência profissional informada.
             </p>
           ) : (
-            curriculo.experiencias.map((experiencia, index) => (
-              <div
-                key={index}
-                className="border-l-2 border-blue-200 pl-5"
-              >
-                <h3 className="font-semibold text-slate-900">
-                  {experiencia.cargo}
-                </h3>
+            curriculo.experiencias.map(
+              (experiencia, index) => (
+                <div
+                  key={index}
+                  className="border-l-2 border-blue-200 pl-5"
+                >
+                  <h3 className="font-semibold text-slate-900">
+                    {experiencia.cargo}
+                  </h3>
 
-                <p className="mt-1 text-sm font-medium text-blue-600">
-                  {experiencia.empresa}
-                </p>
+                  <p className="mt-1 text-sm font-medium text-blue-600">
+                    {experiencia.empresa}
+                  </p>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  {experiencia.inicio} — {experiencia.fim || "Atual"}
-                </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {experiencia.inicio} —{" "}
+                    {experiencia.fim || "Atual"}
+                  </p>
 
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  {experiencia.descricao}
-                </p>
-              </div>
-            ))
+                  <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-600">
+                    {experiencia.descricao}
+                  </p>
+                </div>
+              )
+            )
           )}
+
         </CardContent>
       </Card>
 
+      {/* FORMAÇÃO ACADÊMICA */}
       <Card className="border-slate-200 bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -195,32 +253,47 @@ export default function DetalhesCurriculo() {
         </CardHeader>
 
         <CardContent className="space-y-6">
+
           {curriculo.formacoes.length === 0 ? (
             <p className="text-slate-500">
               Nenhuma formação acadêmica informada.
             </p>
           ) : (
-            curriculo.formacoes.map((formacao, index) => (
-              <div
-                key={index}
-                className="border-l-2 border-blue-200 pl-5"
-              >
-                <h3 className="font-semibold text-slate-900">
-                  {formacao.curso}
-                </h3>
+            curriculo.formacoes.map(
+              (formacao, index) => (
+                <div
+                  key={index}
+                  className="border-l-2 border-blue-200 pl-5"
+                >
+                  <h3 className="font-semibold text-slate-900">
+                    {formacao.curso}
+                  </h3>
 
-                <p className="mt-1 text-sm font-medium text-blue-600">
-                  {formacao.instituicao}
-                </p>
+                  <p className="mt-1 text-sm font-medium text-blue-600">
+                    {formacao.instituicao}
+                  </p>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  {formacao.inicio} — {formacao.fim || "Atual"}
-                </p>
-              </div>
-            ))
+                  <p className="mt-1 text-sm text-slate-500">
+                    {formacao.inicio} —{" "}
+                    {formacao.fim || "Atual"}
+                  </p>
+                </div>
+              )
+            )
           )}
+
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+// COMPONENTE PRINCIPAL DA PÁGINA
+// Suspense corrige o erro do useParams durante o build.
+export default function DetalhesCurriculo() {
+  return (
+    <Suspense fallback={<CarregandoCurriculo />}>
+      <DetalhesConteudo />
+    </Suspense>
   );
 }
